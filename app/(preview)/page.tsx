@@ -1,5 +1,58 @@
 "use client";
 
+// Import html2canvas at the top of the file
+import html2canvas from "html2canvas";
+
+// Listen for screenshot messages and handle taking screenshots
+if (typeof window !== "undefined") {
+  // Get the shape ID from URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const shapeId = urlParams.get("shapeId");
+
+  // Function to ensure shapeId is in URL
+  const ensureShapeIdInUrl = () => {
+    if (shapeId && !window.location.search.includes(shapeId)) {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set("shapeId", shapeId);
+      window.history.replaceState({}, "", newUrl.toString());
+    }
+  };
+
+  // Ensure shapeId is in URL on load
+  ensureShapeIdInUrl();
+
+  // Listen for navigation events
+  window.addEventListener("popstate", ensureShapeIdInUrl);
+
+  window.addEventListener("message", async (event) => {
+    if (event.data.type === "TAKE_SCREENSHOT") {
+      try {
+        // Use html2canvas instead of getDisplayMedia
+        const canvas = await html2canvas(document.body, {
+          logging: false,
+          useCORS: true,
+          allowTaint: true,
+          scale: window.devicePixelRatio || 1,
+        });
+
+        const screenshot = canvas.toDataURL("image/png");
+
+        // Send the screenshot back
+        window.parent.postMessage(
+          {
+            type: "SCREENSHOT_RESULT",
+            shapeId: event.data.shapeId,
+            screenshot,
+          },
+          "*"
+        );
+      } catch (error) {
+        console.error("Failed to take screenshot:", error);
+      }
+    }
+  });
+}
+
 import { useState } from "react";
 import { experimental_useObject } from "ai/react";
 import { questionsSchema } from "@/lib/schemas";
@@ -26,7 +79,7 @@ import { VercelIcon, GitIcon } from "@/components/icons";
 export default function ChatWithFiles() {
   const [files, setFiles] = useState<File[]>([]);
   const [questions, setQuestions] = useState<z.infer<typeof questionsSchema>>(
-    [],
+    []
   );
   const [isDragging, setIsDragging] = useState(false);
   const [title, setTitle] = useState<string>();
@@ -53,14 +106,14 @@ export default function ChatWithFiles() {
 
     if (isSafari && isDragging) {
       toast.error(
-        "Safari does not support drag & drop. Please use the file picker.",
+        "Safari does not support drag & drop. Please use the file picker."
       );
       return;
     }
 
     const selectedFiles = Array.from(e.target.files || []);
     const validFiles = selectedFiles.filter(
-      (file) => file.type === "application/pdf" && file.size <= 5 * 1024 * 1024,
+      (file) => file.type === "application/pdf" && file.size <= 5 * 1024 * 1024
     );
     console.log(validFiles);
 
@@ -87,7 +140,7 @@ export default function ChatWithFiles() {
         name: file.name,
         type: file.type,
         data: await encodeFileAsBase64(file),
-      })),
+      }))
     );
     submit({ files: encodedFiles });
     const generatedTitle = await generateQuizTitle(encodedFiles[0].name);
