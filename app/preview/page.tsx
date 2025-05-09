@@ -206,7 +206,7 @@ export default function ChatWithFiles() {
             </div>
           </div>
           <div className="space-y-2">
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-2xl font-bold text-red-500">
               PDF Quiz Generator
             </CardTitle>
             <CardDescription className="text-base">
